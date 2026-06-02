@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Star, ShoppingCart, Truck, Shield, Minus, Plus, Check } from 'lucide-react'
-import products, { formatPrice } from '../data/products'
+import { formatPrice } from '../data/products'
 import ProductCard from '../components/products/ProductCard'
 import useCartStore from '../store/cartStore'
+import { useProduct, useProducts } from '../hooks/useProducts'
 
 export default function ProductDetail() {
   const { id } = useParams()
@@ -12,9 +13,16 @@ export default function ProductDetail() {
   const [added, setAdded] = useState(false)
   const addItem = useCartStore((s) => s.addItem)
 
-  const product = products.find((p) => p.id === Number(id))
+  const { product, loading, error } = useProduct(id)
+  const { products: all } = useProducts()
 
-  if (!product) {
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-24 text-center text-slate-500">Cargando…</div>
+    )
+  }
+
+  if (error || !product) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-24 text-center">
         <p className="text-xl font-semibold text-slate-700">Producto no encontrado</p>
@@ -29,7 +37,7 @@ export default function ProductDetail() {
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : null
 
-  const related = products
+  const related = all
     .filter((p) => p.category === product.category && p.id !== product.id)
     .slice(0, 4)
 

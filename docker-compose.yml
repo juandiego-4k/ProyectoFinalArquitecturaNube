@@ -11,6 +11,10 @@ services:
     container_name: cloudcommerce-frontend
     ports:
       - "80:80"
+    depends_on:
+      - products-service
+      - cart-service
+      - checkout-service
     restart: unless-stopped
 
   # ── Development (Vite dev server with hot reload) ──────────────────────────
@@ -26,6 +30,37 @@ services:
     command: sh -c "npm install && npm run dev"
     profiles:
       - dev
+
+  # ── Backend microservices ──────────────────────────────────────────────────
+  products-service:
+    build: ./backend/products-service
+    image: cloudcommerce-products-service:latest
+    container_name: cloudcommerce-products-service
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+    restart: unless-stopped
+
+  cart-service:
+    build: ./backend/cart-service
+    image: cloudcommerce-cart-service:latest
+    container_name: cloudcommerce-cart-service
+    ports:
+      - "3002:3002"
+    environment:
+      - PORT=3002
+    restart: unless-stopped
+
+  checkout-service:
+    build: ./backend/checkout-service
+    image: cloudcommerce-checkout-service:latest
+    container_name: cloudcommerce-checkout-service
+    ports:
+      - "3003:3003"
+    environment:
+      - PORT=3003
+    restart: unless-stopped
 
 volumes:
   frontend_node_modules:

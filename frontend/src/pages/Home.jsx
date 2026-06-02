@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom'
 import { ArrowRight, Truck, Shield, Zap } from 'lucide-react'
 import ProductCard from '../components/products/ProductCard'
-import products, { categories } from '../data/products'
+import { categories } from '../data/products'
+import { useProducts } from '../hooks/useProducts'
 
-const CATEGORY_ICONS = { Electrónica: '📱', Deportes: '⚽', Hogar: '🏠' }
+const CATEGORY_ICONS = { 'Electrónica': '📱', Deportes: '⚽', Hogar: '🏠' }
 
 const features = [
   { icon: Truck, label: 'Envío a todo Colombia', desc: 'Gratis desde $200.000' },
@@ -12,6 +13,7 @@ const features = [
 ]
 
 export default function Home() {
+  const { products, loading, error } = useProducts()
   const featured = products.slice(0, 8)
   const offers = products.filter((p) => p.originalPrice !== null).slice(0, 4)
 

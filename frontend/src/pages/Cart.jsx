@@ -1,13 +1,64 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Trash2, Plus, Minus, ShoppingBag, ArrowRight } from 'lucide-react'
+import { Trash2, Plus, Minus, ShoppingBag, ArrowRight, Check, AlertTriangle } from 'lucide-react'
 import useCartStore from '../store/cartStore'
 import { formatPrice } from '../data/products'
+import { submitCheckout } from '../api/client'
+
+// User id de demo. En producción vendría de Cognito o de un sistema de auth.
+const USER_ID = 'demo-user'
 
 export default function Cart() {
   const { items, removeItem, updateQuantity, clearCart } = useCartStore()
+  const [submitting, setSubmitting] = useState(false)
+  const [order, setOrder] = useState(null)
+  const [error, setError] = useState(null)
+
   const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0)
   const count = items.reduce((sum, i) => sum + i.quantity, 0)
   const shipping = total >= 200000 ? 0 : 15000
+
+  const handleCheckout = async () => {
+    setSubmitting(true)
+    setError(null)
+    try {
+      const result = await submitCheckout({
+        userId: USER_ID,
+        items: items.map((i) => ({
+          id: i.id,
+          name: i.name,
+          price: i.price,
+          quantity: i.quantity,
+        })),
+      })
+      setOrder(result)
+      clearCart()
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  if (order) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-24 text-center">
+        <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-100 rounded-full mb-4">
+          <Check className="h-8 w-8 text-emerald-600" />
+        </div>
+        <h2 className="text-2xl font-bold text-slate-900 mb-2">¡Compra confirmada!</h2>
+        <p className="text-slate-500 mb-2">Número de orden:</p>
+        <p className="font-mono text-lg font-semibold text-slate-900 mb-6">{order.orderId}</p>
+        <p className="text-slate-600 mb-6">Total pagado: {formatPrice(order.total)}</p>
+        <Link
+          to="/products"
+          className="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-6 py-3 rounded-xl hover:bg-blue-700 transition"
+        >
+          Seguir comprando <ArrowRight className="h-4 w-4" />
+        </Link>
+      </div>
+    )
+  }
 
   if (items.length === 0) {
     return (
@@ -119,9 +170,20 @@ export default function Cart() {
                 <span>{formatPrice(total + shipping)}</span>
               </div>
             </div>
-            <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition flex items-center justify-center gap-2">
-              Proceder al pago <ArrowRight className="h-4 w-4" />
+            <button
+              onClick={handleCheckout}
+              disabled={submitting}
+              className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold py-3.5 rounded-xl transition flex items-center justify-center gap-2"
+            >
+              {submitting ? 'Procesando…' : 'Proceder al pago'}
+              {!submitting && <ArrowRight className="h-4 w-4" />}
             </button>
+            {error && (
+              <div className="mt-3 flex items-start gap-2 text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl p-3">
+                <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
             <Link
               to="/products"
               className="block text-center text-sm text-slate-500 hover:text-blue-600 mt-3 transition"

@@ -2,7 +2,8 @@ import { useState, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { SlidersHorizontal, X } from 'lucide-react'
 import ProductCard from '../components/products/ProductCard'
-import products, { categories } from '../data/products'
+import { categories } from '../data/products'
+import { useProducts } from '../hooks/useProducts'
 
 const SORT_OPTIONS = [
   { value: 'relevance', label: 'Relevancia' },
@@ -14,6 +15,7 @@ const SORT_OPTIONS = [
 const MAX_PRICE = 7000000
 
 export default function ProductListing() {
+  const { products, loading, error } = useProducts()
   const [searchParams, setSearchParams] = useSearchParams()
   const [sort, setSort] = useState('relevance')
   const [filtersOpen, setFiltersOpen] = useState(false)
@@ -31,7 +33,7 @@ export default function ProductListing() {
     if (sort === 'price-desc') result.sort((a, b) => b.price - a.price)
     if (sort === 'rating') result.sort((a, b) => b.rating - a.rating)
     return result
-  }, [activeCategory, query, sort, maxPrice])
+  }, [activeCategory, query, sort, maxPrice, products])
 
   const setCategory = (cat) => {
     const params = new URLSearchParams(searchParams)
