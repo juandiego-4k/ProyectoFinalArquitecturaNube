@@ -265,11 +265,7 @@ Resources:
             - ContainerPort: 3002
           Environment:
             - Name: PORT
-              Value: '3002'
-          LogConfiguration:
-            LogDriver: awslogs
-            Options:
-              aws
+              Value: '
 
 Outputs:
   LoadBalancerDNS:
