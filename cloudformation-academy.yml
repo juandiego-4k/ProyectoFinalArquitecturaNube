@@ -310,7 +310,7 @@ Resources:
           TargetGroupArn: !Ref CheckoutTargetGroup
 
   # ==========================================
-  # ECS Task Definitions (Sin ExecutionRole - AWS Academy lo proporciona)
+  # ECS Task Definitions
   # ==========================================
   FrontendTaskDefinition:
     Type: AWS::ECS::TaskDefinition
@@ -321,6 +321,7 @@ Resources:
         - FARGATE
       Cpu: '256'
       Memory: '512'
+      ExecutionRoleArn: !Sub 'arn:aws:iam::${AWS::AccountId}:role/LabRole'
       ContainerDefinitions:
         - Name: frontend
           Image: !Sub '${AccountId}.dkr.ecr.${Region}.amazonaws.com/cloudcommerce/frontend:latest'
@@ -352,6 +353,7 @@ Resources:
         - FARGATE
       Cpu: '256'
       Memory: '512'
+      ExecutionRoleArn: !Sub 'arn:aws:iam::${AWS::AccountId}:role/LabRole'
       ContainerDefinitions:
         - Name: products-service
           Image: !Sub '${AccountId}.dkr.ecr.${Region}.amazonaws.com/cloudcommerce/products-service:latest'
@@ -386,6 +388,7 @@ Resources:
         - FARGATE
       Cpu: '256'
       Memory: '512'
+      ExecutionRoleArn: !Sub 'arn:aws:iam::${AWS::AccountId}:role/LabRole'
       ContainerDefinitions:
         - Name: cart-service
           Image: !Sub '${AccountId}.dkr.ecr.${Region}.amazonaws.com/cloudcommerce/cart-service:latest'
@@ -420,6 +423,7 @@ Resources:
         - FARGATE
       Cpu: '256'
       Memory: '512'
+      ExecutionRoleArn: !Sub 'arn:aws:iam::${AWS::AccountId}:role/LabRole'
       ContainerDefinitions:
         - Name: checkout-service
           Image: !Sub '${AccountId}.dkr.ecr.${Region}.amazonaws.com/cloudcommerce/checkout-service:latest'
@@ -572,4 +576,3 @@ Outputs:
     Value: !Ref ECSLogGroup
     Export:
       Name: !Sub '${EnvironmentName}-log-group'
-
