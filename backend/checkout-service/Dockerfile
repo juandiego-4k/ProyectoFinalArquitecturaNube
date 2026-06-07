@@ -1,3 +1,4 @@
+# ── Base stage ─────────────────────────────────────────────────────────────
 FROM node:20-alpine AS base
 WORKDIR /app
 
@@ -7,8 +8,12 @@ COPY package*.json ./
 RUN npm ci
 COPY src ./src
 
-# ── Production stage ────────────────────────────────────────────────────────
+# ── Production stage ───────────────────────────────────────────────────────
 FROM base AS production
+
+# 👇 LA SOLUCIÓN: Instalar curl para el HealthCheck de AWS Fargate 👇
+RUN apk add --no-cache curl
+
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/src ./src
 
