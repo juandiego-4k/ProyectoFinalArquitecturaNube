@@ -58,4 +58,24 @@ app.delete('/api/cart/:userId', (req, res) => {
 })
 
 const PORT = process.env.PORT || 3002
-app.listen(PORT, () => console.log(`[cart-service] listening on :${PORT}`))
+
+// ── Graceful Shutdown ──────────────────────────────────────────────────────
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`[cart-service] listening on 0.0.0.0:${PORT}`)
+})
+
+process.on('SIGTERM', () => {
+  console.log('[cart-service] SIGTERM received, shutting down gracefully...')
+  server.close(() => {
+    console.log('[cart-service] server closed')
+    process.exit(0)
+  })
+})
+
+process.on('SIGINT', () => {
+  console.log('[cart-service] SIGINT received, shutting down gracefully...')
+  server.close(() => {
+    console.log('[cart-service] server closed')
+    process.exit(0)
+  })
+})

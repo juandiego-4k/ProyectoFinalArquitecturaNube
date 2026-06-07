@@ -49,4 +49,24 @@ app.get('/api/orders/:orderId', (req, res) => {
 })
 
 const PORT = process.env.PORT || 3003
-app.listen(PORT, () => console.log(`[checkout-service] listening on :${PORT}`))
+
+// ── Graceful Shutdown ──────────────────────────────────────────────────────
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`[checkout-service] listening on 0.0.0.0:${PORT}`)
+})
+
+process.on('SIGTERM', () => {
+  console.log('[checkout-service] SIGTERM received, shutting down gracefully...')
+  server.close(() => {
+    console.log('[checkout-service] server closed')
+    process.exit(0)
+  })
+})
+
+process.on('SIGINT', () => {
+  console.log('[checkout-service] SIGINT received, shutting down gracefully...')
+  server.close(() => {
+    console.log('[checkout-service] server closed')
+    process.exit(0)
+  })
+})

@@ -27,4 +27,24 @@ app.get('/api/products/:id', (req, res) => {
 })
 
 const PORT = process.env.PORT || 3001
-app.listen(PORT, () => console.log(`[products-service] listening on :${PORT}`))
+
+// ── Graceful Shutdown ──────────────────────────────────────────────────────
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`[products-service] listening on 0.0.0.0:${PORT}`)
+})
+
+process.on('SIGTERM', () => {
+  console.log('[products-service] SIGTERM received, shutting down gracefully...')
+  server.close(() => {
+    console.log('[products-service] server closed')
+    process.exit(0)
+  })
+})
+
+process.on('SIGINT', () => {
+  console.log('[products-service] SIGINT received, shutting down gracefully...')
+  server.close(() => {
+    console.log('[products-service] server closed')
+    process.exit(0)
+  })
+})
