@@ -404,7 +404,6 @@ Resources:
       Cpu: '256'
       Memory: '512'
       ExecutionRoleArn: !Sub 'arn:aws:iam::${AWS::AccountId}:role/LabRole'
-      TaskRoleArn: !Sub 'arn:aws:iam::${AWS::AccountId}:role/LabRole' # <-- NUEVO: Permiso para DynamoDB
       ContainerDefinitions:
         - Name: products-service
           Image: !Sub '${AccountId}.dkr.ecr.${Region}.amazonaws.com/cloudcommerce/products-service:latest'
@@ -414,10 +413,6 @@ Resources:
           Environment:
             - Name: PORT
               Value: '3001'
-            - Name: AWS_REGION
-              Value: !Ref 'AWS::Region'
-            - Name: TABLE_NAME # <-- NUEVO: Inyección de la tabla Products
-              Value: !Ref ProductsTable
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -427,7 +422,7 @@ Resources:
           HealthCheck:
             Command:
               - CMD-SHELL
-              - 'wget -q --spider http://localhost:3001/health || exit 1'
+              - 'curl -f http://localhost:3001/health || exit 1'
             Interval: 10
             Timeout: 5
             Retries: 3
@@ -444,7 +439,6 @@ Resources:
       Cpu: '256'
       Memory: '512'
       ExecutionRoleArn: !Sub 'arn:aws:iam::${AWS::AccountId}:role/LabRole'
-      TaskRoleArn: !Sub 'arn:aws:iam::${AWS::AccountId}:role/LabRole' # <-- NUEVO: Permiso para DynamoDB
       ContainerDefinitions:
         - Name: cart-service
           Image: !Sub '${AccountId}.dkr.ecr.${Region}.amazonaws.com/cloudcommerce/cart-service:latest'
@@ -454,10 +448,6 @@ Resources:
           Environment:
             - Name: PORT
               Value: '3002'
-            - Name: AWS_REGION
-              Value: !Ref 'AWS::Region'
-            - Name: TABLE_NAME # <-- NUEVO: Inyección de la tabla Cart
-              Value: !Ref CartTable
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -467,7 +457,7 @@ Resources:
           HealthCheck:
             Command:
               - CMD-SHELL
-              - 'wget -q --spider http://localhost:3002/health || exit 1'
+              - 'curl -f http://localhost:3002/health || exit 1'
             Interval: 10
             Timeout: 5
             Retries: 3
@@ -484,7 +474,6 @@ Resources:
       Cpu: '256'
       Memory: '512'
       ExecutionRoleArn: !Sub 'arn:aws:iam::${AWS::AccountId}:role/LabRole'
-      TaskRoleArn: !Sub 'arn:aws:iam::${AWS::AccountId}:role/LabRole' # <-- NUEVO: Permiso para DynamoDB
       ContainerDefinitions:
         - Name: checkout-service
           Image: !Sub '${AccountId}.dkr.ecr.${Region}.amazonaws.com/cloudcommerce/checkout-service:latest'
@@ -494,12 +483,6 @@ Resources:
           Environment:
             - Name: PORT
               Value: '3003'
-            - Name: AWS_REGION
-              Value: !Ref 'AWS::Region'
-            - Name: PRODUCTS_TABLE # <-- NUEVO: Inyección de la tabla Products
-              Value: !Ref ProductsTable
-            - Name: ORDERS_TABLE # <-- NUEVO: Inyección de la tabla Orders
-              Value: !Ref OrdersTable
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -509,12 +492,13 @@ Resources:
           HealthCheck:
             Command:
               - CMD-SHELL
-              - 'wget -q --spider http://localhost:3003/health || exit 1'
+              - 'curl -f http://localhost:3003/health || exit 1'
             Interval: 10
             Timeout: 5
             Retries: 3
             StartPeriod: 15
           Essential: true
+
 
   # ==========================================
   # ECS Services
