@@ -115,7 +115,6 @@ Resources:
       SecurityGroups:
         - !Ref ALBSecurityGroup
 
-  # Target Groups
   FrontendTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
@@ -166,7 +165,6 @@ Resources:
         - Type: forward
           TargetGroupArn: !Ref FrontendTargetGroup
 
-  # Listener Rules
   APIProductsRule:
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
     Properties:
@@ -203,7 +201,6 @@ Resources:
         - Type: forward
           TargetGroupArn: !Ref CheckoutTargetGroup
 
-  # Task Definitions (Fargate + awsvpc + LabRole)
   FrontendTaskDef:
     Type: AWS::ECS::TaskDefinition
     Properties:
@@ -265,7 +262,7 @@ Resources:
             - ContainerPort: 3002
           Environment:
             - Name: PORT
-              Value: '
+              Value: '300
 
 Outputs:
   LoadBalancerDNS:
