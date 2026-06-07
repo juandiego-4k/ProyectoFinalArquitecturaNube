@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'CloudCommerce - Infrastructure as Code for AWS Academy Account'
+Description: 'CloudCommerce - Infrastructure as Code for AWS Academy Account (Con DynamoDB)'
 
 Parameters:
   EnvironmentName:
@@ -25,6 +25,54 @@ Parameters:
       - eu-west-1
 
 Resources:
+  # ==========================================
+  # Bases de Datos (DynamoDB) - ¡NUEVO!
+  # ==========================================
+  ProductsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${EnvironmentName}-Products'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: N
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-products-table'
+
+  CartTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${EnvironmentName}-Cart'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-cart-table'
+
+  OrdersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${EnvironmentName}-Orders'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: orderId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: orderId
+          KeyType: HASH
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-orders-table'
+
   # ==========================================
   # VPC and Network Configuration
   # ==========================================
@@ -322,6 +370,8 @@ Resources:
       Cpu: '256'
       Memory: '512'
       ExecutionRoleArn: !Sub 'arn:aws:iam::${AWS::AccountId}:role/LabRole'
+      # El frontend no suele necesitar base de datos directa, pero añadimos el TaskRole por seguridad
+      TaskRoleArn: !Sub 'arn:aws:iam::${AWS::AccountId}:role/LabRole' 
       ContainerDefinitions:
         - Name: frontend
           Image: !Sub '${AccountId}.dkr.ecr.${Region}.amazonaws.com/cloudcommerce/frontend:latest'
@@ -354,6 +404,7 @@ Resources:
       Cpu: '256'
       Memory: '512'
       ExecutionRoleArn: !Sub 'arn:aws:iam::${AWS::AccountId}:role/LabRole'
+      TaskRoleArn: !Sub 'arn:aws:iam::${AWS::AccountId}:role/LabRole' # <-- NUEVO: Permiso para DynamoDB
       ContainerDefinitions:
         - Name: products-service
           Image: !Sub '${AccountId}.dkr.ecr.${Region}.amazonaws.com/cloudcommerce/products-service:latest'
@@ -363,6 +414,10 @@ Resources:
           Environment:
             - Name: PORT
               Value: '3001'
+            - Name: AWS_REGION
+              Value: !Ref 'AWS::Region'
+            - Name: TABLE_NAME # <-- NUEVO: Inyección de la tabla Products
+              Value: !Ref ProductsTable
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -372,7 +427,7 @@ Resources:
           HealthCheck:
             Command:
               - CMD-SHELL
-              - 'curl -f http://localhost:3001/health || exit 1'
+              - 'wget -q --spider http://localhost:3001/health || exit 1'
             Interval: 10
             Timeout: 5
             Retries: 3
@@ -389,6 +444,7 @@ Resources:
       Cpu: '256'
       Memory: '512'
       ExecutionRoleArn: !Sub 'arn:aws:iam::${AWS::AccountId}:role/LabRole'
+      TaskRoleArn: !Sub 'arn:aws:iam::${AWS::AccountId}:role/LabRole' # <-- NUEVO: Permiso para DynamoDB
       ContainerDefinitions:
         - Name: cart-service
           Image: !Sub '${AccountId}.dkr.ecr.${Region}.amazonaws.com/cloudcommerce/cart-service:latest'
@@ -398,6 +454,10 @@ Resources:
           Environment:
             - Name: PORT
               Value: '3002'
+            - Name: AWS_REGION
+              Value: !Ref 'AWS::Region'
+            - Name: TABLE_NAME # <-- NUEVO: Inyección de la tabla Cart
+              Value: !Ref CartTable
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -407,7 +467,7 @@ Resources:
           HealthCheck:
             Command:
               - CMD-SHELL
-              - 'curl -f http://localhost:3002/health || exit 1'
+              - 'wget -q --spider http://localhost:3002/health || exit 1'
             Interval: 10
             Timeout: 5
             Retries: 3
@@ -424,6 +484,7 @@ Resources:
       Cpu: '256'
       Memory: '512'
       ExecutionRoleArn: !Sub 'arn:aws:iam::${AWS::AccountId}:role/LabRole'
+      TaskRoleArn: !Sub 'arn:aws:iam::${AWS::AccountId}:role/LabRole' # <-- NUEVO: Permiso para DynamoDB
       ContainerDefinitions:
         - Name: checkout-service
           Image: !Sub '${AccountId}.dkr.ecr.${Region}.amazonaws.com/cloudcommerce/checkout-service:latest'
@@ -433,6 +494,12 @@ Resources:
           Environment:
             - Name: PORT
               Value: '3003'
+            - Name: AWS_REGION
+              Value: !Ref 'AWS::Region'
+            - Name: PRODUCTS_TABLE # <-- NUEVO: Inyección de la tabla Products
+              Value: !Ref ProductsTable
+            - Name: ORDERS_TABLE # <-- NUEVO: Inyección de la tabla Orders
+              Value: !Ref OrdersTable
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -442,7 +509,7 @@ Resources:
           HealthCheck:
             Command:
               - CMD-SHELL
-              - 'curl -f http://localhost:3003/health || exit 1'
+              - 'wget -q --spider http://localhost:3003/health || exit 1'
             Interval: 10
             Timeout: 5
             Retries: 3
@@ -576,3 +643,14 @@ Outputs:
     Value: !Ref ECSLogGroup
     Export:
       Name: !Sub '${EnvironmentName}-log-group'
+  
+  # Salidas de las nuevas tablas para referencia rápida
+  ProductsTableNameOutput:
+    Description: 'Products DynamoDB Table Name'
+    Value: !Ref ProductsTable
+  CartTableNameOutput:
+    Description: 'Cart DynamoDB Table Name'
+    Value: !Ref CartTable
+  OrdersTableNameOutput:
+    Description: 'Orders DynamoDB Table Name'
+    Value: !Ref OrdersTable
