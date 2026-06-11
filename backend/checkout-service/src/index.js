@@ -2,16 +2,26 @@ const express = require('express')
 const cors = require('cors')
 const crypto = require('crypto')
 
+// 1. Importamos el SDK de AWS
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb')
+const { DynamoDBDocumentClient, PutCommand, GetCommand } = require('@aws-sdk/lib-dynamodb')
+
 const app = express()
 app.use(cors())
 app.use(express.json())
 
-// Órdenes en memoria. En AWS: DynamoDB (tabla: Orders, PK: orderId).
-const orders = new Map()
+// 2. Configuramos el cliente de DynamoDB. 
+// No necesitamos poner contraseñas aquí porque AWS Fargate usará el "TaskRole" que le asignaste en CloudFormation.
+const client = new DynamoDBClient({})
+const docClient = DynamoDBDocumentClient.from(client)
+
+// Tomamos el nombre de la tabla que CloudFormation nos inyectó, o usamos un valor por defecto.
+const ORDERS_TABLE = process.env.ORDERS_TABLE || 'cloudcommerce-Orders'
 
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'checkout' }))
 
-app.post('/api/checkout', (req, res) => {
+// 3. Convertimos la ruta en 'async' para poder esperar la respuesta de AWS
+app.post('/api/checkout', async (req, res) => {
   const { userId, items, shipping, payment } = req.body
 
   if (!userId || !Array.isArray(items) || items.length === 0) {
@@ -28,7 +38,7 @@ app.post('/api/checkout', (req, res) => {
 
   const orderId = `ORD-${crypto.randomBytes(4).toString('hex').toUpperCase()}`
   const order = {
-    orderId,
+    orderId, // Esta es la llave principal (PK) en DynamoDB
     userId,
     items,
     shipping: shipping || null,
@@ -37,15 +47,40 @@ app.post('/api/checkout', (req, res) => {
     status: 'confirmed',
     createdAt: new Date().toISOString(),
   }
-  orders.set(orderId, order)
 
-  res.status(201).json(order)
+  try {
+    // 4. Guardamos la orden real en DynamoDB usando PutCommand
+    await docClient.send(new PutCommand({
+      TableName: ORDERS_TABLE,
+      Item: order
+    }))
+    
+    console.log(`[checkout-service] Orden ${orderId} guardada en DynamoDB exitosamente.`);
+    res.status(201).json(order)
+
+  } catch (error) {
+    console.error('[checkout-service] Error guardando en DynamoDB:', error);
+    res.status(500).json({ error: 'Error interno del servidor al procesar la orden' })
+  }
 })
 
-app.get('/api/orders/:orderId', (req, res) => {
-  const order = orders.get(req.params.orderId)
-  if (!order) return res.status(404).json({ error: 'Order not found' })
-  res.json(order)
+// 5. Actualizamos el método GET para buscar en DynamoDB
+app.get('/api/orders/:orderId', async (req, res) => {
+  try {
+    const response = await docClient.send(new GetCommand({
+      TableName: ORDERS_TABLE,
+      Key: { orderId: req.params.orderId }
+    }))
+
+    if (!response.Item) {
+      return res.status(404).json({ error: 'Order not found' })
+    }
+
+    res.json(response.Item)
+  } catch (error) {
+    console.error('[checkout-service] Error buscando en DynamoDB:', error);
+    res.status(500).json({ error: 'Error interno del servidor' })
+  }
 })
 
 const PORT = process.env.PORT || 3003
